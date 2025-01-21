@@ -14,4 +14,45 @@
 # 3. 履歴がある場合、すべての操作履歴を放棄し、値も初期状態に戻す `restore!` メソッドを作成する
 
 module SimpleModel
+  def self.included(base)
+    base.extend ClassMethods
+  end
+
+  def initialize(args)
+    args.each do |k, v|
+      instance_variable_set("@#{k}", v)
+    end
+  end
+  module ClassMethods
+    def attr_accessor(*attributes)
+      attributes.each do |attribute|
+        # writer
+        define_method "#{attribute}=" do |value|
+          arr = instance_variable_get("@#{attribute}_array") || []
+          arr << value
+          instance_variable_set("@#{attribute}_array", arr)
+
+          define_singleton_method "restore!" do
+            attributes.each do |a|
+              instance_variable_set("@#{a}_array", nil)
+            end
+          end
+        end
+
+        define_method attribute do
+          instance_variable_get("@#{attribute}_array")&.last || instance_variable_get("@#{attribute}")
+        end
+
+        define_method "#{attribute}_changed?" do
+          !!instance_variable_get("@#{attribute}_array")
+        end
+      end
+
+      define_method "changed?" do
+        attributes.any? do |attribute|
+          !!instance_variable_get("@#{attribute}_array")
+        end
+      end
+    end
+  end
 end

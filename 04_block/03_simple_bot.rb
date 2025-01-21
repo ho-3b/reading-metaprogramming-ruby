@@ -22,3 +22,35 @@
 # 4. クラスメソッドsettingは、引数を2つ取り、1つ目がキー名、2つ目が設定する値です
 #     1. settingメソッドに渡された値は、クラスメソッド `settings` から返されるオブジェクトに、メソッド名としてアクセスすることで取り出すことができます
 #     2. e.g. クラス内で `setting :name, 'bot'` と実行した場合は、respondメソッドに渡されるブロックのスコープ内で `settings.name` の戻り値は `bot` の文字列になります
+class SimpleBot
+  class << self
+    def settings
+      self
+    end
+
+    def setting(name, value)
+      define_singleton_method(name) { value }
+    end
+
+    def respond(keyword, &block)
+      self.define_method keyword do
+        block
+      end
+    end
+  end
+
+  def ask(keyword)
+    self.send(keyword).call if self.respond_to? keyword
+  end
+end
+
+class Bot < SimpleBot
+  setting :name, 'bot'
+  setting :age, 10
+  respond 'keyword' do
+    "response #{settings.name}"
+  end
+  respond 'keyword2' do
+    "response #{settings.age}"
+  end
+end

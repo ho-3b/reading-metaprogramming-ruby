@@ -5,7 +5,17 @@ TryOver3 = Module.new
 # - `test_` から始まるインスタンスメソッドが実行された場合、このクラスは `run_test` メソッドを実行する
 # - `test_` メソッドがこのクラスに実装されていなくても `test_` から始まるメッセージに応答することができる
 # - TryOver3::A1 には `test_` から始まるインスタンスメソッドが定義されていない
+class TryOver3::A1
+  def run_test = nil
 
+  def method_missing(name, *args, &block)
+    if name.to_s.start_with?("test_")
+      run_test
+    else
+      super
+    end
+  end
+end
 
 # Q2
 # 以下要件を満たす TryOver3::A2Proxy クラスを作成してください。
@@ -18,6 +28,18 @@ class TryOver3::A2
   end
 end
 
+class TryOver3::A2Proxy
+  def initialize(a2)
+    @source = a2
+  end
+
+  def respond_to_missing?(name, *)
+    @source.respond_to?(name)
+  end
+  def method_missing(name, *args, &block)
+    @source.send(name, *args, &block)
+  end
+end
 
 # Q3.
 # 02_define.rbのQ3ではOriginalAccessor の my_attr_accessor で定義した getter/setter に
@@ -37,6 +59,8 @@ module TryOver3::OriginalAccessor2
           self.class.define_method "#{name}?" do
             @attr == true
           end
+        else
+          self.class.undef_method "#{name}?" if self.class.method_defined? :"#{name}?"
         end
         @attr = value
       end
@@ -52,6 +76,24 @@ end
 # # => "run Hoge"
 # このとき、TryOver3::A4::Hogeという定数は定義されません。
 
+class TryOver3::A4
+  attr_accessor :runners
+
+  def self.runners=(val)
+    @runners = val
+  end
+  def self.run
+    "run #{@runners.join}"
+  end
+
+  def self.const_missing(name)
+    if name == :Hoge
+      self
+    else
+      super
+    end
+  end
+end
 
 # Q5. チャレンジ問題！ 挑戦する方はテストの skip を外して挑戦してみてください。
 #
